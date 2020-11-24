@@ -9,6 +9,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.fftpack import dct, idct # for Fourier transforms
 from nptyping import NDArray, Float64
+from scipy.ndimage.filters import gaussian_filter # For a Gaussian blur
 
 # Level set method class
 class LSM:
@@ -36,7 +37,7 @@ class LSM:
         ii = np.arange(n2)
         ii, jj = np.meshgrid(ii,jj)
 
-        self.kernel = np.exp(-2*self.sigma * (2.0*n1*n1*(1.0 - np.cos(np.pi*jj/n1)) + 2.0*n2*n2*(1.0 - np.cos(np.pi*ii/n2))))
+        self.kernel = 2.0*n1*n1*(1.0 - np.cos(np.pi*jj/n1)) + 2.0*n2*n2*(1.0 - np.cos(np.pi*ii/n2))
     
     # implement 2D DCT
     def dct2(self, a):
@@ -46,12 +47,30 @@ class LSM:
         return idct(idct(a.T, norm='ortho').T, norm='ortho')
     
     # initialize phi with a quadratic function
-    def initialize_phi(self):
-        x = np.linspace(0.5/self.n1,1-0.5/self.n1,self.n1)
-        y = np.linspace(0.5/self.n2,1-0.5/self.n2,self.n2)
-        x, y = np.meshgrid(x,y)
+    def initialize_phi(self, image: NDArray[Float64]):
+#         x = np.linspace(0.5/self.n1,1-0.5/self.n1,self.n1)
+#         y = np.linspace(0.5/self.n2,1-0.5/self.n2,self.n2)
+#         x, y = np.meshgrid(x,y)
         
-        self.phi = - (x-0.5)**2 - (y-0.5)**2 + 0.2**2
+#         self.phi = - (x-0.5)**2 - (y-0.8)**2 + 0.1**2
+        
+        A = self.conv_heat(image, 0.001)
+        
+        self.phi = -(A - np.min(A) - (np.max(A) - np.min(A)) * 0.05)
+        
+    """
+        Heat equation
+    """
+    def conv_heat(self, A: NDArray[Float64], sigma: Float64) -> NDArray[Float64]:
+        A_f = self.dct2(A)
+        A_f *= np.exp(-2*sigma*self.kernel)
+        return self.idct2(A_f)
+        
+    """
+        Gaussian blur
+    """
+    def conv_gaussian(self, A: NDArray[Float64], sigma: Float64) -> NDArray[Float64]:
+        return gaussian_filter(A, sigma=sigma)
         
     """
         Apply convolution on phi.
@@ -61,11 +80,12 @@ class LSM:
         Given numpy 2d array
         Returns numpy 2d array
     """
-    def conv(self, A: NDArray[Float64]) -> NDArray[Float64]:
-        A_f = self.dct2(A)
-        A_f *= self.kernel
-        
-        return self.idct2(A_f)
+    def conv(self, A: NDArray[Float64], sigma = -1) -> NDArray[Float64]:
+        if sigma == -1:
+            sigma = self.sigma
+            
+        return self.conv_heat(A, sigma) # to use a heat equation
+#         return self.conv_gaussian(A, sigma) # to use a Gaussian kernel
         
     """
         compute (partial_x phi) and (partial_y phi)
