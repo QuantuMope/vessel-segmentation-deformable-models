@@ -24,6 +24,13 @@ def obtain_data(data_dir="../data/vessels"):
             "test":  {"names": test_fnames, "images": test_imgs, "labels": test_labels}}
 
 
+def obtain_indicated_data(s_i, e_i, data_dir):
+    fnames = sorted(os.listdir(data_dir), key=order_func)[s_i: e_i]
+    imgs = img_as_float(np.array([np.array(Image.open(data_dir + f)) for f in fnames]))
+
+    return {"names": fnames, "images": imgs}
+
+
 def scale_to_uint(image):
     return ((image - image.min()) * (1 / (image.max() - image.min()) * 255)).astype('uint8')
 
