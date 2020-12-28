@@ -48,15 +48,12 @@ class LSM:
     
     # initialize phi with a quadratic function
     def initialize_phi(self, image: NDArray[Float64]):
-#         x = np.linspace(0.5/self.n1,1-0.5/self.n1,self.n1)
-#         y = np.linspace(0.5/self.n2,1-0.5/self.n2,self.n2)
-#         x, y = np.meshgrid(x,y)
+        x = np.linspace(0.5/self.n1,1-0.5/self.n1,self.n1)
+        y = np.linspace(0.5/self.n2,1-0.5/self.n2,self.n2)
+        x, y = np.meshgrid(x,y)
         
-#         self.phi = - (x-0.5)**2 - (y-0.8)**2 + 0.1**2
+        self.phi = - (x-0.5)**2 - (y-0.8)**2 + 0.3**2
         
-        A = self.conv_heat(image, 0.001)
-        
-        self.phi = -(A - np.min(A) - (np.max(A) - np.min(A)) * 0.05)
         
     """
         Heat equation
@@ -113,8 +110,7 @@ class LSM:
         tmp = image - 0.5 * (self.f1 + self.f2)
         tmp = self.conv(tmp)
         
-        tmp2 = np.abs(tmp)
-        tmp2[tmp2<1] = 1
+        tmp2 = np.max(np.abs(tmp))
         
         return tmp / tmp2
     
@@ -123,8 +119,7 @@ class LSM:
     """
     def compute_gG(self, image: NDArray[Float64]):
         tmp = image - 0.5 * (self.c1 + self.c2)
-        tmp2 = np.abs(tmp)
-        tmp2[tmp2<1] = 1
+        tmp2 = np.max(np.abs(tmp))
         
         return tmp / tmp2
     
